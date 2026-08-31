@@ -161,7 +161,7 @@ void OverlayGUI::render() {
                 };
 
                 if (ImGui::Combo("##ProviderCombo", &m_selected_provider, provider_names, IM_ARRAYSIZE(provider_names))) {
-                    if (m_config) {
+                    if (m_config && m_selected_provider >= 0 && m_selected_provider < (int)IM_ARRAYSIZE(PROVIDER_PRESETS)) {
                         m_config->provider_type = m_selected_provider;
                         strncpy(m_custom_endpoint_input, PROVIDER_PRESETS[m_selected_provider].default_endpoint, sizeof(m_custom_endpoint_input) - 1);
                         strncpy(m_model_name_input, PROVIDER_PRESETS[m_selected_provider].default_model, sizeof(m_model_name_input) - 1);
