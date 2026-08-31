@@ -39,24 +39,17 @@ jobs:
       - name: Build SARPLinggo.asi
         run: |
           cmake --build build --config Release
+        continue-on-error: false
 
       - name: Prepare Named Binary Artifacts
         shell: pwsh
         run: |
-          $dateStr = Get-Date -Format "yyyyMMdd"
+          $dateStr = (Get-Date).ToString("yyyyMMdd")
           $tag = if ($env:GITHUB_REF -like "refs/tags/*") { $env:GITHUB_REF.Substring(10) } else { "v1.1" }
           $namedFile = "SARP-Linggo-ASI-$tag-$dateStr.asi"
           Copy-Item -Path "build/SARPLinggo.asi" -Destination "build/$namedFile" -Force
-          Write-Host "Created named binary: build/$namedFile"
-          Get-ChildItem -Path "build" -Filter "*.asi"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SARP-Linggo-ASI-Package
-          path: |
-            build/SARPLinggo.asi
-            build/SARP-Linggo-ASI-*.asi
+          Write-Host "Created binary: build/$namedFile"
+          Get-ChildItem -Path "build"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
