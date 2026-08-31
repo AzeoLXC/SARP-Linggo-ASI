@@ -48,16 +48,12 @@ jobs:
           $namedFile = "SARP-Linggo-ASI-$tag-$dateStr.asi"
           Copy-Item -Path "build/SARPLinggo.asi" -Destination "build/$namedFile"
           Write-Host "Created named binary: build/$namedFile"
-          "NAMED_FILE=build/$namedFile" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SARP-Linggo-ASI-Package
-          path: |
-            build/SARPLinggo.asi
-            build/SARP-Linggo-ASI-*.asi
+          path: build/*.asi
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -65,9 +61,7 @@ jobs:
         with:
           name: ASI Loader ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          files: |
-            build/SARPLinggo.asi
-            build/SARP-Linggo-ASI-*.asi
+          files: build/*.asi
           draft: false
           prerelease: false
           generate_release_notes: true
