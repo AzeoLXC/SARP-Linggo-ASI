@@ -75,7 +75,7 @@ target_link_libraries(SARPLinggo PRIVATE
 target_compile_definitions(SARPLinggo PRIVATE _CRT_SECURE_NO_WARNINGS)
 
 if(MSVC)
-    target_compile_options(SARPLinggo PRIVATE /W3 /O2 /EHsc)
+    target_compile_options(SARPLinggo PRIVATE /W3 /O2 /EHsc /permissive-)
 else()
     target_compile_options(SARPLinggo PRIVATE -O3 -Wall -Wextra)
 endif()
