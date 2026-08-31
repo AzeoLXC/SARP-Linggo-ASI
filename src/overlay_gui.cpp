@@ -1,6 +1,8 @@
 #include "overlay_gui.h"
 #include "imgui.h"
+#include <windows.h>
 #include <commdlg.h>
+#include <cstring>
 #include <fstream>
 #include <algorithm>
 

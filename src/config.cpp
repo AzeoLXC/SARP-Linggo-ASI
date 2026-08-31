@@ -1,6 +1,7 @@
 #include "config.h"
 #include <windows.h>
 #include <shlobj.h>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
