@@ -37,8 +37,17 @@ jobs:
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=X86
 
       - name: Build SARPLinggo.asi
+        shell: cmd
         run: |
-          cmake --build build --config Release --verbose
+          cmake --build build --config Release --verbose > build_log.txt 2>&1
+          type build_log.txt
+
+      - name: Upload Build Log On Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-log
+          path: build_log.txt
 
       - name: Prepare Named Binary Artifacts
         shell: pwsh
