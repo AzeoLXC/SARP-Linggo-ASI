@@ -1,7 +1,5 @@
 #include "translator.h"
 #include "config.h"
-#include <windows.h>
-#include <winhttp.h>
 #include <regex>
 #include <sstream>
 #include <iostream>
@@ -65,7 +63,6 @@ size_t KeyPoolManager::total_keys() const {
 bool KeyPoolManager::get_next_working_key(std::string& out_key, unsigned int& out_index, std::string& out_status) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_keys.empty()) {
-        // In case of local ollama or providers without key
         out_key = "";
         out_index = 0;
         out_status = "No Key Required";
@@ -186,7 +183,6 @@ bool UniversalTranslator::send_winhttp_request(const std::string& endpoint, cons
     HINTERNET hSession = WinHttpOpen(L"SA-RP-Linggo-ASI/1.4", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     if (!hSession) return false;
 
-    // Timeout settings (5s connect, 10s send, 10s receive)
     WinHttpSetTimeouts(hSession, 5000, 5000, 10000, 10000);
 
     HINTERNET hConnect = WinHttpConnect(hSession, ep.host.c_str(), ep.port, 0);
@@ -205,7 +201,7 @@ bool UniversalTranslator::send_winhttp_request(const std::string& endpoint, cons
 
     std::wstring headers = L"Content-Type: application/json\r\n";
     if (!api_key.empty()) {
-        if (g_config.provider_type == 3) { // Anthropic Claude
+        if (g_config.provider_type == 3) {
             headers += L"x-api-key: " + std::wstring(api_key.begin(), api_key.end()) + L"\r\nanthropic-version: 2023-06-01\r\n";
         } else {
             headers += L"Authorization: Bearer " + std::wstring(api_key.begin(), api_key.end()) + L"\r\n";
@@ -255,7 +251,7 @@ std::string UniversalTranslator::translate_inbound(const std::string& text, cons
     std::string key, status;
     unsigned int key_idx = 0;
     if (!m_key_pool.get_next_working_key(key, key_idx, status)) {
-        if (g_config.provider_type != 5) { // Not Ollama
+        if (g_config.provider_type != 5) {
             return "[API Key Belum Diisi / Token Pool Kosong]";
         }
     }
@@ -266,7 +262,7 @@ std::string UniversalTranslator::translate_inbound(const std::string& text, cons
     std::string endpoint = g_config.custom_endpoint.empty() ? "https://api.groq.com/openai/v1/chat/completions" : g_config.custom_endpoint;
 
     std::string payload;
-    if (g_config.provider_type == 3) { // Anthropic Claude format
+    if (g_config.provider_type == 3) {
         payload = "{\"model\":\"" + model + "\",\"max_tokens\":1024,\"system\":\"" + sys_prompt + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + escape_json(text) + "\"}]}";
     } else {
         payload = "{\"model\":\"" + model + "\",\"messages\":[{\"role\":\"system\",\"content\":\"" + 
@@ -277,7 +273,6 @@ std::string UniversalTranslator::translate_inbound(const std::string& text, cons
     int status_code = 0;
     std::string body;
     if (send_winhttp_request(endpoint, key, payload, status_code, body) && status_code == 200) {
-        // Check for OpenAI / standard format: "content":"..."
         size_t c_pos = body.find("\"content\":");
         if (c_pos != std::string::npos) {
             size_t q1 = body.find('\"', c_pos + 10);
@@ -291,7 +286,6 @@ std::string UniversalTranslator::translate_inbound(const std::string& text, cons
                 return clean_translation_output(raw_content);
             }
         }
-        // Check for Anthropic format: "text":"..."
         size_t t_pos = body.find("\"text\":");
         if (t_pos != std::string::npos) {
             size_t q1 = body.find('\"', t_pos + 7);
@@ -346,7 +340,7 @@ std::string UniversalTranslator::translate_outbound(const std::string& text, con
     std::string endpoint = g_config.custom_endpoint.empty() ? "https://api.groq.com/openai/v1/chat/completions" : g_config.custom_endpoint;
 
     std::string payload;
-    if (g_config.provider_type == 3) { // Anthropic Claude
+    if (g_config.provider_type == 3) {
         payload = "{\"model\":\"" + model + "\",\"max_tokens\":1024,\"system\":\"" + sys_prompt + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + escape_json(text) + "\"}]}";
     } else {
         payload = "{\"model\":\"" + model + "\",\"messages\":[{\"role\":\"system\",\"content\":\"" + 

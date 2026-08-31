@@ -1,4 +1,6 @@
 #pragma once
+#include <windows.h>
+#include <winhttp.h>
 #include <string>
 #include <vector>
 #include <mutex>
