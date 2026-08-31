@@ -14,7 +14,7 @@ ClipboardListener::~ClipboardListener() {
     stop();
 }
 
-void ClipboardListener::init(GroqTranslator* translator, const std::string& style) {
+void ClipboardListener::init(UniversalTranslator* translator, const std::string& style) {
     m_translator = translator;
     m_style = style;
 }

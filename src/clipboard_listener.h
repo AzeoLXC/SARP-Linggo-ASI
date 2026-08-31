@@ -6,11 +6,11 @@
 
 namespace SARPLinggo {
 
-class GroqTranslator;
+class UniversalTranslator;
 
 class ClipboardListener {
 private:
-    GroqTranslator* m_translator = nullptr;
+    UniversalTranslator* m_translator = nullptr;
     std::string m_style = "Standard English";
     std::function<void(const std::string&, const std::string&)> m_on_translated;
     std::thread m_thread;
@@ -22,9 +22,9 @@ private:
 
 public:
     ClipboardListener() = default;
-    ~ClipboardListener();
+    ~ClipboardListener() { stop(); }
 
-    void init(GroqTranslator* translator, const std::string& style);
+    void init(UniversalTranslator* translator, const std::string& style);
     void set_enabled(bool enabled) { m_enabled = enabled; }
     void set_style(const std::string& style) { m_style = style; }
     void set_on_translated(std::function<void(const std::string&, const std::string&)> cb) { m_on_translated = cb; }
