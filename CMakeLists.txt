@@ -73,6 +73,8 @@ target_link_libraries(SARPLinggo PRIVATE
     advapi32
 )
 
+target_compile_definitions(SARPLinggo PRIVATE _CRT_SECURE_NO_WARNINGS)
+
 if(MSVC)
     target_compile_options(SARPLinggo PRIVATE /W3 /O2 /EHsc)
 else()

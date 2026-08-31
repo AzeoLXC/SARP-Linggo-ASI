@@ -70,6 +70,7 @@ DWORD WINAPI PluginMainThread(LPVOID lpParam) {
             g_gui->add_chat_card(full_item);
         }
     });
+    g_gui->set_chat_listener(g_chat_listener);
     g_chat_listener->start();
 
     // Initialize DirectX 9 Hook

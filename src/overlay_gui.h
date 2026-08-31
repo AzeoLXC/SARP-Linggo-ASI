@@ -11,6 +11,8 @@
 
 namespace SARPLinggo {
 
+class ChatlogListener;
+
 class OverlayGUI {
 private:
     bool m_visible = true;
@@ -18,6 +20,7 @@ private:
     Config* m_config = nullptr;
     GroqTranslator* m_translator = nullptr;
     ClipboardListener* m_clipboard_listener = nullptr;
+    ChatlogListener* m_chat_listener = nullptr;
     LicenseManager* m_license_mgr = nullptr;
 
     std::vector<ChatItem> m_feed_items;
@@ -37,6 +40,7 @@ public:
     void set_config(Config* cfg);
     void set_translator(GroqTranslator* tr) { m_translator = tr; }
     void set_clipboard_listener(ClipboardListener* cl) { m_clipboard_listener = cl; }
+    void set_chat_listener(ChatlogListener* cl) { m_chat_listener = cl; }
     void set_license_manager(LicenseManager* lm) { m_license_mgr = lm; }
     void set_status(const std::string& status) { m_status_message = status; }
 
