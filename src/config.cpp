@@ -62,12 +62,12 @@ std::vector<std::string> Config::detect_groq_api_key() {
     for (const auto& entry : fs::directory_iterator(dlPath)) {
         if (entry.is_regular_file()) {
             std::string filename = entry.path().filename().string();
-            if (filename.find("gsk_") != std::string::npos && filename.ends_with(".txt")) {
+            if ((filename.find("gsk_") != std::string::npos || filename.find("api_key") != std::string::npos) && filename.ends_with(".txt")) {
                 std::ifstream f(entry.path());
                 std::string line;
                 while (std::getline(f, line)) {
                     std::string trimmed = trim(line);
-                    if (trimmed.rfind("gsk_", 0) == 0 && trimmed.length() >= 20) {
+                    if (trimmed.length() >= 15) {
                         keys.push_back(trimmed);
                     }
                 }
@@ -79,7 +79,7 @@ std::vector<std::string> Config::detect_groq_api_key() {
 
 std::vector<std::string> Config::get_api_keys() const {
     std::vector<std::string> res;
-    std::stringstream ss(groq_api_key);
+    std::stringstream ss(api_key);
     std::string item;
     while (std::getline(ss, item, ',')) {
         std::string t = trim(item);
@@ -94,12 +94,31 @@ void Config::load(const std::string& filepath) {
         return;
     }
 
-    char buf[1024];
-    GetPrivateProfileStringA("Settings", "GroqAPIKey", "", buf, sizeof(buf), filepath.c_str());
-    groq_api_key = buf;
+    provider_type = GetPrivateProfileIntA("Settings", "ProviderType", 0, filepath.c_str());
 
-    GetPrivateProfileStringA("Settings", "GroqModel", "openai/gpt-oss-20b", buf, sizeof(buf), filepath.c_str());
-    groq_model = buf;
+    char buf[2048];
+    GetPrivateProfileStringA("Settings", "APIKey", "", buf, sizeof(buf), filepath.c_str());
+    if (strlen(buf) == 0) {
+        // Fallback backward compat
+        GetPrivateProfileStringA("Settings", "GroqAPIKey", "", buf, sizeof(buf), filepath.c_str());
+    }
+    api_key = buf;
+
+    GetPrivateProfileStringA("Settings", "CustomEndpoint", "https://api.groq.com/openai/v1/chat/completions", buf, sizeof(buf), filepath.c_str());
+    custom_endpoint = buf;
+
+    GetPrivateProfileStringA("Settings", "ModelName", "openai/gpt-oss-20b", buf, sizeof(buf), filepath.c_str());
+    if (strlen(buf) == 0 || std::string(buf) == "openai/gpt-oss-20b") {
+        char oldModel[256] = {0};
+        GetPrivateProfileStringA("Settings", "GroqModel", "", oldModel, sizeof(oldModel), filepath.c_str());
+        if (strlen(oldModel) > 0) {
+            model_name = oldModel;
+        } else {
+            model_name = buf;
+        }
+    } else {
+        model_name = buf;
+    }
 
     GetPrivateProfileStringA("Settings", "TargetLanguage", "Indonesian", buf, sizeof(buf), filepath.c_str());
     target_language = buf;
@@ -131,8 +150,10 @@ void Config::load(const std::string& filepath) {
 }
 
 void Config::save(const std::string& filepath) {
-    WritePrivateProfileStringA("Settings", "GroqAPIKey", groq_api_key.c_str(), filepath.c_str());
-    WritePrivateProfileStringA("Settings", "GroqModel", groq_model.c_str(), filepath.c_str());
+    WritePrivateProfileStringA("Settings", "ProviderType", std::to_string(provider_type).c_str(), filepath.c_str());
+    WritePrivateProfileStringA("Settings", "APIKey", api_key.c_str(), filepath.c_str());
+    WritePrivateProfileStringA("Settings", "CustomEndpoint", custom_endpoint.c_str(), filepath.c_str());
+    WritePrivateProfileStringA("Settings", "ModelName", model_name.c_str(), filepath.c_str());
     WritePrivateProfileStringA("Settings", "TargetLanguage", target_language.c_str(), filepath.c_str());
     WritePrivateProfileStringA("Settings", "OutboundStyle", outbound_style.c_str(), filepath.c_str());
     WritePrivateProfileStringA("Settings", "ChatlogPath", chatlog_path.c_str(), filepath.c_str());

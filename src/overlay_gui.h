@@ -17,7 +17,7 @@ private:
     bool m_visible = true;
     bool m_cursor_mode = false;
     Config* m_config = nullptr;
-    GroqTranslator* m_translator = nullptr;
+    UniversalTranslator* m_translator = nullptr;
     ClipboardListener* m_clipboard_listener = nullptr;
     ChatlogListener* m_chat_listener = nullptr;
 
@@ -27,14 +27,17 @@ private:
     char m_outbound_input[1024] = {0};
     char m_outbound_result[1024] = {0};
     char m_api_keys_input[4096] = {0};
+    char m_custom_endpoint_input[512] = {0};
+    char m_model_name_input[256] = {0};
     char m_chatlog_path_input[MAX_PATH] = {0};
+    int m_selected_provider = 0;
 
 public:
     OverlayGUI() = default;
     ~OverlayGUI() = default;
 
     void set_config(Config* cfg);
-    void set_translator(GroqTranslator* tr) { m_translator = tr; }
+    void set_translator(UniversalTranslator* tr) { m_translator = tr; }
     void set_clipboard_listener(ClipboardListener* cl) { m_clipboard_listener = cl; }
     void set_chat_listener(ChatlogListener* cl) { m_chat_listener = cl; }
     void set_status(const std::string& status) { m_status_message = status; }

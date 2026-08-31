@@ -4,54 +4,44 @@ Native DirectX 9 / ImGui ASI translation and roleplay assistant plugin for GTA S
 
 ## Features
 
-- **DirectX 9 Native ImGui Overlay**: Clean in-game UI overlay rendered inside the game pipeline with keyboard shortcuts (`Shift + H` to toggle visibility, `Shift + Enter` to unlock mouse cursor).
-- **Clipboard Translation**: Automatically translate copied Indonesian text into English (`CTRL+C`) in real-time with configurable styles (Standard English, American Hood / Ghetto RP).
-- **Chatlog Inbound Monitoring**: Automatically tail and parse SA-MP `chatlog.txt` (including CodsMP support) and translate incoming chat messages.
-- **Groq API Cloud Translation**: Ultra-fast LLM responses using Groq API (`openai/gpt-oss-20b` or custom models) with automatic multi-key rotation and rate-limit handling.
-- **100% Open Source & Free**: No DRM, no licensing restrictions, no activation token required. Anyone can compile and run directly.
+- **DirectX 9 Native ImGui Overlay**: Rendered natively inside the game engine loop without requiring external window capture or alt-tabbing.
+- **Multi-Provider AI & Custom Endpoints**:
+  - **Groq Cloud** (Default, ultra-fast LLM inference)
+  - **OpenAI** (GPT-4o, GPT-4o-mini)
+  - **DeepSeek** (DeepSeek-V3, DeepSeek-R1)
+  - **Anthropic Claude** (Claude 3.5 Sonnet / Haiku)
+  - **Google Gemini** (Gemini 1.5 Pro / Flash)
+  - **Ollama** (Local offline LLM, no internet or API key required)
+  - **OpenRouter** (Unified API gateway)
+  - **Custom Endpoints** (LM Studio, vLLM, Text-Gen-WebUI, or any OpenAI-compatible API)
+- **Multi-Token Dynamic Rolling Pool**: Automatically distributes requests and rotates through multiple API keys to avoid rate limits.
+- **Roleplay Translator**: Tailored presets for GTA SA-MP (`Standard English`, `American Hood`, `/me`, `/do`, In-Character chat).
+- **Clipboard & Chatlog Interceptors**: Seamless real-time translation with clipboard hotkeys and automatic `chatlog.txt` parsing.
+- **100% Free & Open-Source**: No licensing keys, no hardware locks, no subscription checks.
 
-## Shortcuts
+## Installation
 
-- `Shift + H`: Toggle overlay window visibility
-- `Shift + Enter`: Toggle cursor interaction mode (Locked / Unlocked)
+1. Download the latest release from the [Releases](https://github.com/AzeoLXC/SARP-Linggo-ASI/releases) page (e.g. `SARP-Linggo-ASI-v1.1-YYYYMMDD.asi` or `SARPLinggo.asi`).
+2. Place the `.asi` file into your GTA San Andreas root directory (alongside `gta_sa.exe` and an ASI loader such as `Silent's ASI Loader` or `vorbisFile.dll`).
+3. Launch the game.
+
+## Hotkeys
+
+- `Shift + H`: Toggle overlay menu visibility.
+- `Shift + Enter`: Toggle mouse cursor mode (unlock cursor for menu interaction).
 
 ## Building from Source
 
-### Prerequisites
-
-- Visual Studio 2022 / MSVC (x86 32-bit toolchain)
-- CMake 3.20+
-- Ninja or Visual Studio Generator
-
-### Local Compilation
+Requirements:
+- Windows SDK / MSVC (x86 32-bit)
+- CMake >= 3.20
+- Ninja
 
 ```bash
-cmake -B build -G "Visual Studio 17 2022" -A Win32
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=X86
 cmake --build build --config Release
 ```
 
-The compiled output `SARPLinggo.asi` will be generated in `build/Release/SARPLinggo.asi`.
-
-## Configuration (`SARPLinggo.ini`)
-
-Place `SARPLinggo.asi` and `SARPLinggo.ini` into your GTA San Andreas root folder:
-
-```ini
-[Settings]
-GroqAPIKey=gsk_your_groq_api_key_here
-GroqModel=openai/gpt-oss-20b
-TargetLanguage=Indonesian
-OutboundStyle=Standard English
-AutoTranslateIC=1
-AutoTranslateMeDo=1
-EnableClipboardOutbound=1
-EnableInboundChatlog=1
-```
-
-## Continuous Integration
-
-Automated builds and artifact packaging are managed via GitHub Actions. Tagged releases (`vX.X`) trigger automated compilation and publishing under the release title `ASI Loader vX.X`.
-
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+MIT License. Free for roleplay communities and developers.

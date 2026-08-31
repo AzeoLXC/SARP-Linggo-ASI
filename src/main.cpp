@@ -16,8 +16,8 @@ DWORD WINAPI PluginMainThread(LPVOID lpParam) {
     std::string config_path = Config::get_game_directory() + "\\SARPLinggo.ini";
     g_config.load(config_path);
 
-    // Initialize Groq Translator
-    g_translator = new GroqTranslator();
+    // Initialize Universal Multi-AI Translator
+    g_translator = new UniversalTranslator();
     g_translator->set_developer_mode(g_config.developer_mode);
     g_translator->update_api_keys(g_config.get_api_keys());
 

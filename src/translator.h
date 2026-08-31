@@ -37,17 +37,25 @@ public:
     std::string get_pool_summary() const;
 };
 
-class GroqTranslator {
+struct EndpointInfo {
+    std::wstring host;
+    INTERNET_PORT port;
+    std::wstring path;
+    bool is_https;
+};
+
+class UniversalTranslator {
 private:
     KeyPoolManager m_key_pool;
     bool m_developer_mode = false;
 
-    bool send_winhttp_request(const std::string& api_key, const std::string& payload, int& out_status_code, std::string& out_body);
+    static EndpointInfo parse_url(const std::string& url_str);
+    bool send_winhttp_request(const std::string& endpoint, const std::string& api_key, const std::string& payload, int& out_status_code, std::string& out_body);
     std::string clean_translation_output(const std::string& raw) const;
 
 public:
-    GroqTranslator();
-    ~GroqTranslator() = default;
+    UniversalTranslator();
+    ~UniversalTranslator() = default;
 
     void set_developer_mode(bool dev) { m_developer_mode = dev; }
     void update_api_keys(const std::vector<std::string>& keys);
@@ -59,6 +67,6 @@ public:
     std::string get_pool_summary() const { return m_key_pool.get_pool_summary(); }
 };
 
-extern GroqTranslator* g_translator;
+extern UniversalTranslator* g_translator;
 
 } // namespace SARPLinggo

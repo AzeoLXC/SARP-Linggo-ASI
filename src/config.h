@@ -4,9 +4,23 @@
 
 namespace SARPLinggo {
 
+enum class AIProvider {
+    Groq = 0,
+    OpenAI,
+    DeepSeek,
+    Claude,
+    Gemini,
+    Ollama,
+    OpenRouter,
+    Custom
+};
+
 struct Config {
-    std::string groq_api_key;
-    std::string groq_model = "openai/gpt-oss-20b";
+    int provider_type = 0; // 0=Groq, 1=OpenAI, 2=DeepSeek, 3=Claude, 4=Gemini, 5=Ollama, 6=OpenRouter, 7=Custom
+    std::string api_key;
+    std::string custom_endpoint = "https://api.groq.com/openai/v1/chat/completions";
+    std::string model_name = "openai/gpt-oss-20b";
+    
     std::string target_language = "Indonesian";
     std::string outbound_style = "Standard English";
     std::string chatlog_path;

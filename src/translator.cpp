@@ -1,13 +1,15 @@
 #include "translator.h"
+#include "config.h"
 #include <windows.h>
 #include <winhttp.h>
 #include <regex>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 
 namespace SARPLinggo {
 
-GroqTranslator* g_translator = nullptr;
+UniversalTranslator* g_translator = nullptr;
 
 static inline std::string escape_json(const std::string& s) {
     std::ostringstream o;
@@ -63,8 +65,11 @@ size_t KeyPoolManager::total_keys() const {
 bool KeyPoolManager::get_next_working_key(std::string& out_key, unsigned int& out_index, std::string& out_status) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_keys.empty()) {
-        out_status = "Tidak ada API key terdaftar";
-        return false;
+        // In case of local ollama or providers without key
+        out_key = "";
+        out_index = 0;
+        out_status = "No Key Required";
+        return true;
     }
 
     auto now = std::chrono::system_clock::now();
@@ -92,6 +97,7 @@ bool KeyPoolManager::get_next_working_key(std::string& out_key, unsigned int& ou
 }
 
 void KeyPoolManager::mark_rate_limited(const std::string& key, int cooldown_minutes, const std::string& reset_time) {
+    if (key.empty()) return;
     std::lock_guard<std::mutex> lock(m_mutex);
     auto& state = m_key_states[key];
     state.is_rate_limited = true;
@@ -101,6 +107,7 @@ void KeyPoolManager::mark_rate_limited(const std::string& key, int cooldown_minu
 }
 
 void KeyPoolManager::update_key_metrics(const std::string& key, int remaining, int limit, const std::string& reset_time) {
+    if (key.empty()) return;
     std::lock_guard<std::mutex> lock(m_mutex);
     auto& state = m_key_states[key];
     state.remaining_requests = remaining;
@@ -110,7 +117,7 @@ void KeyPoolManager::update_key_metrics(const std::string& key, int remaining, i
 
 std::string KeyPoolManager::get_pool_summary() const {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_keys.empty()) return "0 Token Terdaftar";
+    if (m_keys.empty()) return "0 Token Terdaftar (Direct Mode)";
     
     int active_ready = 0;
     auto now = std::chrono::system_clock::now();
@@ -127,32 +134,84 @@ std::string KeyPoolManager::get_pool_summary() const {
            std::to_string(m_keys.size()) + " Siap)";
 }
 
-// --- GroqTranslator ---
+// --- UniversalTranslator ---
 
-GroqTranslator::GroqTranslator() {}
+UniversalTranslator::UniversalTranslator() {}
 
-void GroqTranslator::update_api_keys(const std::vector<std::string>& keys) {
+void UniversalTranslator::update_api_keys(const std::vector<std::string>& keys) {
     m_key_pool.update_keys(keys);
 }
 
-bool GroqTranslator::send_winhttp_request(const std::string& api_key, const std::string& payload, int& out_status_code, std::string& out_body) {
-    HINTERNET hSession = WinHttpOpen(L"SA-RP-Linggo-ASI/1.3", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+EndpointInfo UniversalTranslator::parse_url(const std::string& url_str) {
+    EndpointInfo info;
+    info.is_https = true;
+    info.port = INTERNET_DEFAULT_HTTPS_PORT;
+    info.path = L"/openai/v1/chat/completions";
+    info.host = L"api.groq.com";
+
+    std::string s = url_str;
+    if (s.empty()) return info;
+
+    if (s.rfind("http://", 0) == 0) {
+        info.is_https = false;
+        info.port = INTERNET_DEFAULT_HTTP_PORT;
+        s = s.substr(7);
+    } else if (s.rfind("https://", 0) == 0) {
+        info.is_https = true;
+        info.port = INTERNET_DEFAULT_HTTPS_PORT;
+        s = s.substr(8);
+    }
+
+    size_t slash_pos = s.find('/');
+    std::string host_port = (slash_pos != std::string::npos) ? s.substr(0, slash_pos) : s;
+    std::string path_part = (slash_pos != std::string::npos) ? s.substr(slash_pos) : "/";
+
+    size_t colon_pos = host_port.find(':');
+    if (colon_pos != std::string::npos) {
+        std::string host_only = host_port.substr(0, colon_pos);
+        int port_num = std::stoi(host_port.substr(colon_pos + 1));
+        info.host = std::wstring(host_only.begin(), host_only.end());
+        info.port = static_cast<INTERNET_PORT>(port_num);
+    } else {
+        info.host = std::wstring(host_port.begin(), host_port.end());
+    }
+
+    info.path = std::wstring(path_part.begin(), path_part.end());
+    return info;
+}
+
+bool UniversalTranslator::send_winhttp_request(const std::string& endpoint, const std::string& api_key, const std::string& payload, int& out_status_code, std::string& out_body) {
+    EndpointInfo ep = parse_url(endpoint);
+
+    HINTERNET hSession = WinHttpOpen(L"SA-RP-Linggo-ASI/1.4", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     if (!hSession) return false;
 
-    HINTERNET hConnect = WinHttpConnect(hSession, L"api.groq.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
+    // Timeout settings (5s connect, 10s send, 10s receive)
+    WinHttpSetTimeouts(hSession, 5000, 5000, 10000, 10000);
+
+    HINTERNET hConnect = WinHttpConnect(hSession, ep.host.c_str(), ep.port, 0);
     if (!hConnect) {
         WinHttpCloseHandle(hSession);
         return false;
     }
 
-    HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"POST", L"/openai/v1/chat/completions", NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+    DWORD flags = ep.is_https ? WINHTTP_FLAG_SECURE : 0;
+    HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"POST", ep.path.c_str(), NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
     if (!hRequest) {
         WinHttpCloseHandle(hConnect);
         WinHttpCloseHandle(hSession);
         return false;
     }
 
-    std::wstring headers = L"Authorization: Bearer " + std::wstring(api_key.begin(), api_key.end()) + L"\r\nContent-Type: application/json\r\n";
+    std::wstring headers = L"Content-Type: application/json\r\n";
+    if (!api_key.empty()) {
+        if (g_config.provider_type == 3) { // Anthropic Claude
+            headers += L"x-api-key: " + std::wstring(api_key.begin(), api_key.end()) + L"\r\nanthropic-version: 2023-06-01\r\n";
+        } else {
+            headers += L"Authorization: Bearer " + std::wstring(api_key.begin(), api_key.end()) + L"\r\n";
+        }
+    }
+
     BOOL bResults = WinHttpSendRequest(hRequest, headers.c_str(), (DWORD)-1L, (LPVOID)payload.data(), (DWORD)payload.size(), (DWORD)payload.size(), 0);
 
     if (bResults) {
@@ -185,35 +244,58 @@ bool GroqTranslator::send_winhttp_request(const std::string& api_key, const std:
     return bResults != FALSE;
 }
 
-std::string GroqTranslator::clean_translation_output(const std::string& raw) const {
+std::string UniversalTranslator::clean_translation_output(const std::string& raw) const {
     std::string text = raw;
-    // Remove <think>...</think>
     std::regex think_regex("<think>[\\s\\S]*?</think>");
     text = std::regex_replace(text, think_regex, "");
     return trim(text);
 }
 
-std::string GroqTranslator::translate_inbound(const std::string& text, const std::string& target_lang) {
+std::string UniversalTranslator::translate_inbound(const std::string& text, const std::string& target_lang) {
     std::string key, status;
     unsigned int key_idx = 0;
     if (!m_key_pool.get_next_working_key(key, key_idx, status)) {
-        return "[Groq API Key Belum Diisi / Token Pool Kosong]";
+        if (g_config.provider_type != 5) { // Not Ollama
+            return "[API Key Belum Diisi / Token Pool Kosong]";
+        }
     }
 
-    std::string sys_prompt = "You are a professional translator for GTA SA-MP roleplay.\\nTranslate foreign input text into clear, formal, natural Indonesian (Bahasa Indonesia yang baik, benar, dan natural).\\n\\nCRITICAL DIRECTIVES:\\n1. OUTPUT ONLY THE FINAL INDONESIAN TRANSLATION SENTENCE.\\n2. DO NOT use <think> tags, internal monologue, reasoning, or explanations.\\n3. Use standard formal Indonesian pronouns ('Saya/Aku', 'Anda/Kamu') instead of street slang ('lu', 'gue').";
+    std::string sys_prompt = "You are a professional translator for GTA SA-MP roleplay.\\nTranslate foreign input text into clear, formal, natural " + target_lang + " (Bahasa " + target_lang + " yang baik, benar, dan natural).\\n\\nCRITICAL DIRECTIVES:\\n1. OUTPUT ONLY THE FINAL TRANSLATION SENTENCE.\\n2. DO NOT use <think> tags, internal monologue, reasoning, or explanations.\\n3. Use standard natural pronouns instead of harsh street slang.";
 
-    std::string payload = "{\"model\":\"openai/gpt-oss-20b\",\"messages\":[{\"role\":\"system\",\"content\":\"" + 
-                          sys_prompt + "\"},{\"role\":\"user\",\"content\":\"" + 
-                          escape_json(text) + "\"}],\"temperature\":0.1,\"max_tokens\":1024}";
+    std::string model = g_config.model_name.empty() ? "openai/gpt-oss-20b" : g_config.model_name;
+    std::string endpoint = g_config.custom_endpoint.empty() ? "https://api.groq.com/openai/v1/chat/completions" : g_config.custom_endpoint;
+
+    std::string payload;
+    if (g_config.provider_type == 3) { // Anthropic Claude format
+        payload = "{\"model\":\"" + model + "\",\"max_tokens\":1024,\"system\":\"" + sys_prompt + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + escape_json(text) + "\"}]}";
+    } else {
+        payload = "{\"model\":\"" + model + "\",\"messages\":[{\"role\":\"system\",\"content\":\"" + 
+                  sys_prompt + "\"},{\"role\":\"user\",\"content\":\"" + 
+                  escape_json(text) + "\"}],\"temperature\":0.1,\"max_tokens\":1024}";
+    }
 
     int status_code = 0;
     std::string body;
-    if (send_winhttp_request(key, payload, status_code, body) && status_code == 200) {
+    if (send_winhttp_request(endpoint, key, payload, status_code, body) && status_code == 200) {
+        // Check for OpenAI / standard format: "content":"..."
         size_t c_pos = body.find("\"content\":");
         if (c_pos != std::string::npos) {
             size_t q1 = body.find("\"", c_pos + 10);
             if (q1 != std::string::npos) {
-                // Find closing quote handling escaped quotes
+                size_t q2 = q1 + 1;
+                while (q2 < body.length()) {
+                    if (body[q2] == '"' && body[q2 - 1] != '\\') break;
+                    q2++;
+                }
+                std::string raw_content = body.substr(q1 + 1, q2 - q1 - 1);
+                return clean_translation_output(raw_content);
+            }
+        }
+        // Check for Anthropic format: "text":"..."
+        size_t t_pos = body.find("\"text\":");
+        if (t_pos != std::string::npos) {
+            size_t q1 = body.find("\"", t_pos + 7);
+            if (q1 != std::string::npos) {
                 size_t q2 = q1 + 1;
                 while (q2 < body.length()) {
                     if (body[q2] == '"' && body[q2 - 1] != '\\') break;
@@ -227,14 +309,16 @@ std::string GroqTranslator::translate_inbound(const std::string& text, const std
         m_key_pool.mark_rate_limited(key, 5, "429 Rate Limited");
     }
 
-    return "[Groq Error Status " + std::to_string(status_code) + "]";
+    return "[AI Error Status " + std::to_string(status_code) + "]";
 }
 
-std::string GroqTranslator::translate_outbound(const std::string& text, const std::string& style) {
+std::string UniversalTranslator::translate_outbound(const std::string& text, const std::string& style) {
     std::string key, status;
     unsigned int key_idx = 0;
     if (!m_key_pool.get_next_working_key(key, key_idx, status)) {
-        return "[Groq API Key Belum Diisi / Token Pool Kosong]";
+        if (g_config.provider_type != 5) {
+            return "[API Key Belum Diisi / Token Pool Kosong]";
+        }
     }
 
     std::string sys_prompt;
@@ -258,16 +342,37 @@ std::string GroqTranslator::translate_outbound(const std::string& text, const st
         }
     }
 
-    std::string payload = "{\"model\":\"openai/gpt-oss-20b\",\"messages\":[{\"role\":\"system\",\"content\":\"" + 
-                          sys_prompt + "\"},{\"role\":\"user\",\"content\":\"" + 
-                          escape_json(text) + "\"}],\"temperature\":0.3,\"max_tokens\":1024}";
+    std::string model = g_config.model_name.empty() ? "openai/gpt-oss-20b" : g_config.model_name;
+    std::string endpoint = g_config.custom_endpoint.empty() ? "https://api.groq.com/openai/v1/chat/completions" : g_config.custom_endpoint;
+
+    std::string payload;
+    if (g_config.provider_type == 3) { // Anthropic Claude
+        payload = "{\"model\":\"" + model + "\",\"max_tokens\":1024,\"system\":\"" + sys_prompt + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + escape_json(text) + "\"}]}";
+    } else {
+        payload = "{\"model\":\"" + model + "\",\"messages\":[{\"role\":\"system\",\"content\":\"" + 
+                  sys_prompt + "\"},{\"role\":\"user\",\"content\":\"" + 
+                  escape_json(text) + "\"}],\"temperature\":0.3,\"max_tokens\":1024}";
+    }
 
     int status_code = 0;
     std::string body;
-    if (send_winhttp_request(key, payload, status_code, body) && status_code == 200) {
+    if (send_winhttp_request(endpoint, key, payload, status_code, body) && status_code == 200) {
         size_t c_pos = body.find("\"content\":");
         if (c_pos != std::string::npos) {
             size_t q1 = body.find("\"", c_pos + 10);
+            if (q1 != std::string::npos) {
+                size_t q2 = q1 + 1;
+                while (q2 < body.length()) {
+                    if (body[q2] == '"' && body[q2 - 1] != '\\') break;
+                    q2++;
+                }
+                std::string raw_content = body.substr(q1 + 1, q2 - q1 - 1);
+                return clean_translation_output(raw_content);
+            }
+        }
+        size_t t_pos = body.find("\"text\":");
+        if (t_pos != std::string::npos) {
+            size_t q1 = body.find("\"", t_pos + 7);
             if (q1 != std::string::npos) {
                 size_t q2 = q1 + 1;
                 while (q2 < body.length()) {
@@ -282,23 +387,36 @@ std::string GroqTranslator::translate_outbound(const std::string& text, const st
         m_key_pool.mark_rate_limited(key, 5, "429 Rate Limited");
     }
 
-    return "[Groq Error Status " + std::to_string(status_code) + "]";
+    return "[AI Error Status " + std::to_string(status_code) + "]";
 }
 
-void GroqTranslator::check_rpd_quota(std::string& out_report) {
+void UniversalTranslator::check_rpd_quota(std::string& out_report) {
     std::stringstream ss;
     auto keys = m_key_pool.get_keys();
     if (keys.empty()) {
-        out_report = "Tidak ada API key terdaftar";
+        if (g_config.provider_type == 5) {
+            out_report = "Ollama Local: Ready (No API Key Required)";
+        } else {
+            out_report = "Tidak ada API key terdaftar";
+        }
         return;
     }
 
+    std::string model = g_config.model_name.empty() ? "openai/gpt-oss-20b" : g_config.model_name;
+    std::string endpoint = g_config.custom_endpoint.empty() ? "https://api.groq.com/openai/v1/chat/completions" : g_config.custom_endpoint;
+
     int idx = 1;
     for (const auto& k : keys) {
-        std::string payload = "{\"model\":\"openai/gpt-oss-20b\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1}";
+        std::string payload;
+        if (g_config.provider_type == 3) {
+            payload = "{\"model\":\"" + model + "\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}]}";
+        } else {
+            payload = "{\"model\":\"" + model + "\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1}";
+        }
+
         int status_code = 0;
         std::string body;
-        bool ok = send_winhttp_request(k, payload, status_code, body);
+        bool ok = send_winhttp_request(endpoint, k, payload, status_code, body);
         ss << "Key #" << idx++ << ": ";
         if (ok && status_code == 200) {
             ss << "[OK] Active / Siap\n";
@@ -307,7 +425,7 @@ void GroqTranslator::check_rpd_quota(std::string& out_report) {
         } else if (status_code == 401) {
             ss << "[X] Invalid Key (401)\n";
         } else {
-            ss << "Error HTTP " << status_code << "\n";
+            ss << "Status " << status_code << "\n";
         }
     }
     out_report = ss.str();
