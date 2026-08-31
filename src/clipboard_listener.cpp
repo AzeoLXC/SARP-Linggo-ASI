@@ -144,7 +144,7 @@ void ClipboardListener::run() {
 
             if (is_indonesian_text(current)) {
                 std::string translated = m_translator->translate_outbound(current, m_style);
-                if (!translated.empty() && translated.find("[Groq Error") == std::string::npos && translated.find("[Lisensi") == std::string::npos) {
+                if (!translated.empty() && translated.find("[AI Error") == std::string::npos && translated.find("[API Key") == std::string::npos) {
                     m_last_clipboard = translated;
                     set_clipboard_text(translated);
                     if (m_on_translated) {

@@ -280,11 +280,11 @@ std::string UniversalTranslator::translate_inbound(const std::string& text, cons
         // Check for OpenAI / standard format: "content":"..."
         size_t c_pos = body.find("\"content\":");
         if (c_pos != std::string::npos) {
-            size_t q1 = body.find("\"", c_pos + 10);
+            size_t q1 = body.find('\"', c_pos + 10);
             if (q1 != std::string::npos) {
                 size_t q2 = q1 + 1;
                 while (q2 < body.length()) {
-                    if (body[q2] == '"' && body[q2 - 1] != '\\') break;
+                    if (body[q2] == '\"' && body[q2 - 1] != '\\') break;
                     q2++;
                 }
                 std::string raw_content = body.substr(q1 + 1, q2 - q1 - 1);
@@ -294,11 +294,11 @@ std::string UniversalTranslator::translate_inbound(const std::string& text, cons
         // Check for Anthropic format: "text":"..."
         size_t t_pos = body.find("\"text\":");
         if (t_pos != std::string::npos) {
-            size_t q1 = body.find("\"", t_pos + 7);
+            size_t q1 = body.find('\"', t_pos + 7);
             if (q1 != std::string::npos) {
                 size_t q2 = q1 + 1;
                 while (q2 < body.length()) {
-                    if (body[q2] == '"' && body[q2 - 1] != '\\') break;
+                    if (body[q2] == '\"' && body[q2 - 1] != '\\') break;
                     q2++;
                 }
                 std::string raw_content = body.substr(q1 + 1, q2 - q1 - 1);
@@ -359,11 +359,11 @@ std::string UniversalTranslator::translate_outbound(const std::string& text, con
     if (send_winhttp_request(endpoint, key, payload, status_code, body) && status_code == 200) {
         size_t c_pos = body.find("\"content\":");
         if (c_pos != std::string::npos) {
-            size_t q1 = body.find("\"", c_pos + 10);
+            size_t q1 = body.find('\"', c_pos + 10);
             if (q1 != std::string::npos) {
                 size_t q2 = q1 + 1;
                 while (q2 < body.length()) {
-                    if (body[q2] == '"' && body[q2 - 1] != '\\') break;
+                    if (body[q2] == '\"' && body[q2 - 1] != '\\') break;
                     q2++;
                 }
                 std::string raw_content = body.substr(q1 + 1, q2 - q1 - 1);
@@ -372,11 +372,11 @@ std::string UniversalTranslator::translate_outbound(const std::string& text, con
         }
         size_t t_pos = body.find("\"text\":");
         if (t_pos != std::string::npos) {
-            size_t q1 = body.find("\"", t_pos + 7);
+            size_t q1 = body.find('\"', t_pos + 7);
             if (q1 != std::string::npos) {
                 size_t q2 = q1 + 1;
                 while (q2 < body.length()) {
-                    if (body[q2] == '"' && body[q2 - 1] != '\\') break;
+                    if (body[q2] == '\"' && body[q2 - 1] != '\\') break;
                     q2++;
                 }
                 std::string raw_content = body.substr(q1 + 1, q2 - q1 - 1);
