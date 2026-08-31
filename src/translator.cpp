@@ -9,6 +9,14 @@ namespace SARPLinggo {
 
 UniversalTranslator* g_translator = nullptr;
 
+static inline std::wstring to_wide_string(const std::string& str) {
+    if (str.empty()) return L"";
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), NULL, 0);
+    std::wstring wstr(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), &wstr[0], size_needed);
+    return wstr;
+}
+
 static inline std::string escape_json(const std::string& s) {
     std::ostringstream o;
     for (char c : s) {
@@ -167,13 +175,13 @@ EndpointInfo UniversalTranslator::parse_url(const std::string& url_str) {
     if (colon_pos != std::string::npos) {
         std::string host_only = host_port.substr(0, colon_pos);
         int port_num = std::stoi(host_port.substr(colon_pos + 1));
-        info.host = std::wstring(host_only.begin(), host_only.end());
+        info.host = to_wide_string(host_only);
         info.port = static_cast<unsigned short>(port_num);
     } else {
-        info.host = std::wstring(host_port.begin(), host_port.end());
+        info.host = to_wide_string(host_port);
     }
 
-    info.path = std::wstring(path_part.begin(), path_part.end());
+    info.path = to_wide_string(path_part);
     return info;
 }
 
@@ -202,9 +210,9 @@ bool UniversalTranslator::send_winhttp_request(const std::string& endpoint, cons
     std::wstring headers = L"Content-Type: application/json\r\n";
     if (!api_key.empty()) {
         if (g_config.provider_type == 3) {
-            headers += L"x-api-key: " + std::wstring(api_key.begin(), api_key.end()) + L"\r\nanthropic-version: 2023-06-01\r\n";
+            headers += L"x-api-key: " + to_wide_string(api_key) + L"\r\nanthropic-version: 2023-06-01\r\n";
         } else {
-            headers += L"Authorization: Bearer " + std::wstring(api_key.begin(), api_key.end()) + L"\r\n";
+            headers += L"Authorization: Bearer " + to_wide_string(api_key) + L"\r\n";
         }
     }
 
