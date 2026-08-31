@@ -38,7 +38,7 @@ jobs:
 
       - name: Build SARPLinggo.asi
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release --verbose
 
       - name: Prepare Named Binary Artifacts
         shell: pwsh
