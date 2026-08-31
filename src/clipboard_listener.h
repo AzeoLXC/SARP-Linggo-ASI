@@ -22,7 +22,7 @@ private:
 
 public:
     ClipboardListener() = default;
-    ~ClipboardListener() { stop(); }
+    ~ClipboardListener();
 
     void init(UniversalTranslator* translator, const std::string& style);
     void set_enabled(bool enabled) { m_enabled = enabled; }
