@@ -1,0 +1,27 @@
+# Build artifacts
+build/
+bin/
+lib/
+out/
+*.asi
+*.dll
+*.exe
+*.obj
+*.o
+*.pdb
+*.exp
+*.lib
+
+# IDE & Editor files
+.vs/
+.vscode/
+.idea/
+CMakeSettings.json
+CMakeUserPresets.json
+
+# Local runtime logs and configs
+SARPLinggo_debug.log
+SARPLinggo.ini
+SARPLinggo_license.json
+imgui.ini
+imgui_log.txt

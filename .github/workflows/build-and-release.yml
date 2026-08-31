@@ -1,0 +1,61 @@
+name: Build and Release ASI Plugin
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*.*'
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSVC toolchain
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        with:
+          version: 1.11.1
+
+      - name: Configure CMake (32-bit x86)
+        run: |
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=X86
+
+      - name: Build SARPLinggo.asi
+        run: |
+          cmake --build build --config Release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARPLinggo-ASI
+          path: |
+            build/SARPLinggo.asi
+            build/SARPLinggo.dll
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ASI Loader ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: |
+            build/SARPLinggo.asi
+          draft: false
+          prerelease: false
+          generate_release_notes: true
