@@ -1,6 +1,5 @@
 #include <windows.h>
 #include "config.h"
-#include "licensing.h"
 #include "translator.h"
 #include "chat_listener.h"
 #include "clipboard_listener.h"
@@ -17,16 +16,8 @@ DWORD WINAPI PluginMainThread(LPVOID lpParam) {
     std::string config_path = Config::get_game_directory() + "\\SARPLinggo.ini";
     g_config.load(config_path);
 
-    // Initialize License Manager
-    g_license = new LicenseManager();
-    if (!g_config.license_token.empty()) {
-        std::string msg;
-        g_license->activate_token(g_config.license_token, msg);
-    }
-
     // Initialize Groq Translator
     g_translator = new GroqTranslator();
-    g_translator->set_license_manager(g_license);
     g_translator->set_developer_mode(g_config.developer_mode);
     g_translator->update_api_keys(g_config.get_api_keys());
 
@@ -34,7 +25,6 @@ DWORD WINAPI PluginMainThread(LPVOID lpParam) {
     g_gui = new OverlayGUI();
     g_gui->set_config(&g_config);
     g_gui->set_translator(g_translator);
-    g_gui->set_license_manager(g_license);
 
     // Initialize Clipboard Listener
     g_clipboard_listener = new ClipboardListener();
@@ -97,7 +87,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
         SARPLinggo::D3D9Hook::shutdown();
         if (SARPLinggo::g_gui) delete SARPLinggo::g_gui;
         if (SARPLinggo::g_translator) delete SARPLinggo::g_translator;
-        if (SARPLinggo::g_license) delete SARPLinggo::g_license;
     }
     return TRUE;
 }

@@ -10,7 +10,6 @@ struct Config {
     std::string target_language = "Indonesian";
     std::string outbound_style = "Standard English";
     std::string chatlog_path;
-    std::string license_token;
     
     bool use_codsmp = false;
     bool enable_clipboard_outbound = true;

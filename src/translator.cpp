@@ -1,5 +1,4 @@
 #include "translator.h"
-#include "licensing.h"
 #include <windows.h>
 #include <winhttp.h>
 #include <regex>
@@ -195,10 +194,6 @@ std::string GroqTranslator::clean_translation_output(const std::string& raw) con
 }
 
 std::string GroqTranslator::translate_inbound(const std::string& text, const std::string& target_lang) {
-    if (m_license_mgr && !m_license_mgr->is_active()) {
-        return "[Lisensi Belum Aktif / Perlu Aktivasi]";
-    }
-
     std::string key, status;
     unsigned int key_idx = 0;
     if (!m_key_pool.get_next_working_key(key, key_idx, status)) {
@@ -236,10 +231,6 @@ std::string GroqTranslator::translate_inbound(const std::string& text, const std
 }
 
 std::string GroqTranslator::translate_outbound(const std::string& text, const std::string& style) {
-    if (m_license_mgr && !m_license_mgr->is_active()) {
-        return "[Lisensi Belum Aktif / Perlu Aktivasi]";
-    }
-
     std::string key, status;
     unsigned int key_idx = 0;
     if (!m_key_pool.get_next_working_key(key, key_idx, status)) {

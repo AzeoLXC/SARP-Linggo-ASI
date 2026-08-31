@@ -7,8 +7,6 @@
 
 namespace SARPLinggo {
 
-class LicenseManager;
-
 struct KeyState {
     int failure_count = 0;
     int remaining_requests = 1000;
@@ -42,7 +40,6 @@ public:
 class GroqTranslator {
 private:
     KeyPoolManager m_key_pool;
-    LicenseManager* m_license_mgr = nullptr;
     bool m_developer_mode = false;
 
     bool send_winhttp_request(const std::string& api_key, const std::string& payload, int& out_status_code, std::string& out_body);
@@ -52,7 +49,6 @@ public:
     GroqTranslator();
     ~GroqTranslator() = default;
 
-    void set_license_manager(LicenseManager* mgr) { m_license_mgr = mgr; }
     void set_developer_mode(bool dev) { m_developer_mode = dev; }
     void update_api_keys(const std::vector<std::string>& keys);
     

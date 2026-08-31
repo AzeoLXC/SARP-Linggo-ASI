@@ -113,9 +113,6 @@ void Config::load(const std::string& filepath) {
         chatlog_path = detect_chatlog_path();
     }
 
-    GetPrivateProfileStringA("Settings", "LicenseToken", "", buf, sizeof(buf), filepath.c_str());
-    license_token = buf;
-
     use_codsmp = GetPrivateProfileIntA("Settings", "UseCodSMP", 0, filepath.c_str()) != 0;
     enable_clipboard_outbound = GetPrivateProfileIntA("Settings", "EnableClipboardOutbound", 1, filepath.c_str()) != 0;
     enable_inbound_chatlog = GetPrivateProfileIntA("Settings", "EnableInboundChatlog", 1, filepath.c_str()) != 0;
@@ -139,7 +136,6 @@ void Config::save(const std::string& filepath) {
     WritePrivateProfileStringA("Settings", "TargetLanguage", target_language.c_str(), filepath.c_str());
     WritePrivateProfileStringA("Settings", "OutboundStyle", outbound_style.c_str(), filepath.c_str());
     WritePrivateProfileStringA("Settings", "ChatlogPath", chatlog_path.c_str(), filepath.c_str());
-    WritePrivateProfileStringA("Settings", "LicenseToken", license_token.c_str(), filepath.c_str());
     WritePrivateProfileStringA("Settings", "UseCodSMP", use_codsmp ? "1" : "0", filepath.c_str());
     WritePrivateProfileStringA("Settings", "EnableClipboardOutbound", enable_clipboard_outbound ? "1" : "0", filepath.c_str());
     WritePrivateProfileStringA("Settings", "EnableInboundChatlog", enable_inbound_chatlog ? "1" : "0", filepath.c_str());

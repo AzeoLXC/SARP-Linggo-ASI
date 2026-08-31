@@ -13,7 +13,6 @@ void OverlayGUI::set_config(Config* cfg) {
     if (m_config) {
         strncpy(m_api_keys_input, m_config->groq_api_key.c_str(), sizeof(m_api_keys_input) - 1);
         strncpy(m_chatlog_path_input, m_config->chatlog_path.c_str(), sizeof(m_chatlog_path_input) - 1);
-        strncpy(m_license_token_input, m_config->license_token.c_str(), sizeof(m_license_token_input) - 1);
     }
 }
 
@@ -219,44 +218,13 @@ void OverlayGUI::render() {
                 ImGui::Text("=== SA-RP Linggo ASI Mod v1.3 ===");
                 ImGui::Text("Pengembang: SA-RP Linggo Team");
                 ImGui::Text("Status Sistem: Aktif (DirectX9 Native Hook)");
+                ImGui::Text("Lisensi: Fully Open Source (Free / No License Required)");
                 ImGui::Separator();
                 ImGui::Text("Pintasan Keyboard:");
                 ImGui::BulletText("Shift + H    : Hide / Show Overlay Window");
                 ImGui::BulletText("Shift + Enter: Unlock / Lock Cursor Interaksi");
                 ImGui::Separator();
-
-                ImGui::Text("Status Lisensi Perangkat:");
-                if (m_license_mgr && m_license_mgr->is_active()) {
-                    auto info = m_license_mgr->get_license_info();
-                    ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "[+] Lisensi Status: AKTIF");
-                    ImGui::Text("HWID Perangkat: %s", info.hwid.c_str());
-                    ImGui::Text("Kadaluarsa Pada: %s", info.expires_at.c_str());
-                } else {
-                    std::string hwid = LicenseManager::get_local_hwid();
-                    ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "[X] Lisensi Status: TIDAK AKTIF / BELUM DIAKTIFKAN");
-                    ImGui::Text("HWID Perangkat Anda: %s", hwid.c_str());
-                    if (ImGui::Button("Salin HWID")) {
-                        ClipboardListener::set_clipboard_text(hwid);
-                    }
-
-                    ImGui::Separator();
-                    ImGui::Text("Masukkan Token Lisensi Anda (Format: SARP-...):");
-                    ImGui::InputText("##LicenseInput", m_license_token_input, sizeof(m_license_token_input));
-                    
-                    if (ImGui::Button("Aktivasi Lisensi", ImVec2(-1, 30))) {
-                        if (m_license_mgr) {
-                            bool ok = m_license_mgr->activate_token(m_license_token_input, m_license_message);
-                            if (ok && m_config) {
-                                m_config->license_token = m_license_token_input;
-                                m_config->save(Config::get_game_directory() + "\\SARPLinggo.ini");
-                            }
-                        }
-                    }
-
-                    if (!m_license_message.empty()) {
-                        ImGui::TextWrapped("%s", m_license_message.c_str());
-                    }
-                }
+                ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "[+] Bebas Digunakan: Cukup isi Groq API Key di tab Setelan.");
 
                 ImGui::EndTabItem();
             }

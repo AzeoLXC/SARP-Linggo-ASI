@@ -40,7 +40,6 @@ set(IMGUI_SOURCES
 add_library(SARPLinggo SHARED
     src/main.cpp
     src/config.cpp
-    src/licensing.cpp
     src/translator.cpp
     src/chat_listener.cpp
     src/clipboard_listener.cpp
@@ -62,7 +61,6 @@ target_include_directories(SARPLinggo PRIVATE
 target_link_libraries(SARPLinggo PRIVATE
     minhook
     d3d9
-    d3dx9
     dwmapi
     winhttp
     bcrypt
