@@ -145,7 +145,7 @@ void UniversalTranslator::update_api_keys(const std::vector<std::string>& keys) 
 EndpointInfo UniversalTranslator::parse_url(const std::string& url_str) {
     EndpointInfo info;
     info.is_https = true;
-    info.port = INTERNET_DEFAULT_HTTPS_PORT;
+    info.port = 443;
     info.path = L"/openai/v1/chat/completions";
     info.host = L"api.groq.com";
 
@@ -154,11 +154,11 @@ EndpointInfo UniversalTranslator::parse_url(const std::string& url_str) {
 
     if (s.rfind("http://", 0) == 0) {
         info.is_https = false;
-        info.port = INTERNET_DEFAULT_HTTP_PORT;
+        info.port = 80;
         s = s.substr(7);
     } else if (s.rfind("https://", 0) == 0) {
         info.is_https = true;
-        info.port = INTERNET_DEFAULT_HTTPS_PORT;
+        info.port = 443;
         s = s.substr(8);
     }
 
@@ -171,7 +171,7 @@ EndpointInfo UniversalTranslator::parse_url(const std::string& url_str) {
         std::string host_only = host_port.substr(0, colon_pos);
         int port_num = std::stoi(host_port.substr(colon_pos + 1));
         info.host = std::wstring(host_only.begin(), host_only.end());
-        info.port = static_cast<INTERNET_PORT>(port_num);
+        info.port = static_cast<unsigned short>(port_num);
     } else {
         info.host = std::wstring(host_port.begin(), host_port.end());
     }

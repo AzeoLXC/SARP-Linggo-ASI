@@ -1,6 +1,4 @@
 #pragma once
-#include <windows.h>
-#include <winhttp.h>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -41,7 +39,7 @@ public:
 
 struct EndpointInfo {
     std::wstring host;
-    INTERNET_PORT port;
+    unsigned short port;
     std::wstring path;
     bool is_https;
 };
